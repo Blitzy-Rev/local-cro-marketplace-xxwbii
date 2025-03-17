@@ -1,0 +1,255 @@
+version: '3.8'
+
+services:
+  # Nginx reverse proxy that routes requests to frontend and backend services
+  nginx:
+    image: nginx:1.24-alpine
+    ports:
+      - "${EXTERNAL_HTTP_PORT}:80"
+      - "${EXTERNAL_HTTPS_PORT}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    restart: unless-stopped
+    networks:
+      - frontend_network
+      - backend_network
+
+  # React frontend application for the platform
+  frontend:
+    build:
+      context: ../src/web
+      dockerfile: src/docker/Dockerfile
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=/api
+    restart: unless-stopped
+    networks:
+      - frontend_network
+    depends_on:
+      - backend
+
+  # FastAPI backend service with RDKit for molecular processing
+  backend:
+    build:
+      context: ../src/backend
+      dockerfile: docker/Dockerfile
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MINIO_SERVER=minio
+      - MINIO_PORT=9000
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+      - APP_ENVIRONMENT=${APP_ENVIRONMENT}
+      - LOG_LEVEL=${LOG_LEVEL}
+    volumes:
+      - backend_data:/app/data
+    restart: unless-stopped
+    networks:
+      - backend_network
+      - database_network
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  # Celery worker for background task processing
+  worker:
+    build:
+      context: ../src/backend
+      dockerfile: docker/celery/Dockerfile
+    environment:
+      - POSTGRES_SERVER=postgres
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MINIO_SERVER=minio
+      - MINIO_PORT=9000
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+      - APP_ENVIRONMENT=${APP_ENVIRONMENT}
+      - LOG_LEVEL=${LOG_LEVEL}
+    volumes:
+      - worker_data:/app/data
+    restart: unless-stopped
+    networks:
+      - backend_network
+      - database_network
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  # PostgreSQL database for structured data storage
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+    networks:
+      - database_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and message queue
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    restart: unless-stopped
+    networks:
+      - backend_network
+      - database_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO object storage for file storage
+  minio:
+    image: minio/minio:latest
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+      - ./minio/init.sh:/docker-entrypoint-initdb.d/init.sh:ro
+    command: server /data --console-address ':9001'
+    restart: unless-stopped
+    networks:
+      - backend_network
+      - database_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Prometheus for metrics collection and monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command: --config.file=/etc/prometheus/prometheus.yml --storage.tsdb.path=/prometheus
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+      - backend_network
+    depends_on:
+      - backend
+      - worker
+
+  # Grafana for metrics visualization and dashboards
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    restart: unless-stopped
+    networks:
+      - monitoring_network
+      - frontend_network
+    depends_on:
+      - prometheus
+
+  # Fluentd for log collection and aggregation
+  fluentd:
+    image: fluent/fluentd:latest
+    volumes:
+      - ./fluentd/fluent.conf:/fluentd/etc/fluent.conf:ro
+      - nginx_logs:/var/log/nginx:ro
+      - fluentd_data:/fluentd/log
+    restart: unless-stopped
+    networks:
+      - logging_network
+      - backend_network
+    depends_on:
+      - elasticsearch
+
+  # Elasticsearch for log storage and indexing
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=${ELASTICSEARCH_JAVA_OPTS}
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - ./elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    restart: unless-stopped
+    networks:
+      - logging_network
+
+  # Kibana for log visualization and analysis
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.0
+    volumes:
+      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    restart: unless-stopped
+    networks:
+      - logging_network
+      - frontend_network
+    depends_on:
+      - elasticsearch
+
+volumes:
+  # Persistent storage for PostgreSQL database
+  postgres_data:
+  # Persistent storage for Redis data
+  redis_data:
+  # Persistent storage for MinIO object storage
+  minio_data:
+  # Persistent storage for backend application data
+  backend_data:
+  # Persistent storage for worker application data
+  worker_data:
+  # Persistent storage for Nginx logs
+  nginx_logs:
+  # Persistent storage for Prometheus metrics
+  prometheus_data:
+  # Persistent storage for Grafana dashboards and settings
+  grafana_data:
+  # Persistent storage for Elasticsearch indices
+  elasticsearch_data:
+  # Persistent storage for Fluentd logs
+  fluentd_data:
+
+networks:
+  # Network for frontend services and Nginx
+  frontend_network:
+  # Network for backend services and workers
+  backend_network:
+  # Network for database services
+  database_network:
+  # Network for monitoring services
+  monitoring_network:
+  # Network for logging services
+  logging_network:
