@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <!-- LD1: Set character set for proper rendering of all characters -->
+  <meta charset="UTF-8">
+  <!-- LD1: Configure viewport for responsive design across devices -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- LD1: Set theme color for browser UI customization -->
+  <meta name="theme-color" content="#1976d2">
+  <!-- LD1: Provide a description for search engine optimization -->
+  <meta name="description"
+    content="Molecular Data Management and CRO Integration Platform for small to mid-cap pharmaceutical companies">
+
+  <!-- LD1: Set the title of the page -->
+  <title>Molecular Data Platform</title>
+
+  <!-- LD1: Link to the favicon for browser tab icon -->
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+
+  <!-- LD1: Preconnect to Google Fonts for faster font loading -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <!-- IE2: Load Roboto font from Google Fonts for Material-UI components -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+  <!-- Roboto Font vLatest -->
+
+  <!-- LD1: Configure Content Security Policy to enhance security -->
+  <!-- LD1: Allow scripts from self and specified domains -->
+  <!-- LD1: Allow styles from self and Google Fonts -->
+  <!-- LD1: Allow images from self and data URLs -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline';
+    style-src 'self' https://fonts.googleapis.com 'unsafe-inline';
+    img-src 'self' data:;
+    font-src 'self' https://fonts.gstatic.com;
+    connect-src 'self';
+    ">
+
+  <!-- LD1: Prevent Cross-Site Scripting (XSS) attacks -->
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+
+  <!-- LD1: Configure Cross-Origin Resource Sharing (CORS) policies -->
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains; preload">
+</head>
+
+<body>
+  <!-- LD1: Display a message if JavaScript is disabled -->
+  <noscript>You need to enable JavaScript to run this application.</noscript>
+  <!-- LD1: Root element where the React application will be mounted -->
+  <div id="root"></div>
+  <!-- IE1: Import the main.tsx bundle for the React application -->
+  <script type="module" src="/src/index.tsx"></script>
+</body>
+
+</html>
