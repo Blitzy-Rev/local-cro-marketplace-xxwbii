@@ -1,0 +1,649 @@
+{
+  "id": null,
+  "uid": "system-dashboard",
+  "title": "System Health Dashboard",
+  "tags": ["system", "monitoring", "health"],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "10s",
+  "schemaVersion": 30,
+  "version": 1,
+  "description": "Comprehensive system health monitoring dashboard for the Molecular Data Management and CRO Integration Platform",
+  "variables": [
+    {
+      "name": "datasource",
+      "type": "datasource",
+      "query": "prometheus",
+      "description": "Prometheus data source for metrics"
+    },
+    {
+      "name": "node",
+      "type": "query",
+      "datasource": "$datasource",
+      "query": "label_values(node_uname_info, nodename)",
+      "description": "Node selection for filtering metrics"
+    },
+    {
+      "name": "job",
+      "type": "query",
+      "datasource": "$datasource",
+      "query": "label_values(up, job)",
+      "description": "Job selection for filtering metrics"
+    }
+  ],
+  "panels": [
+    {
+      "title": "System Status Overview",
+      "type": "stat",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(up{job=~\"$job\"}) / count(up{job=~\"$job\"}) * 100",
+          "legendFormat": "System Uptime"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["mean"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "red",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 90
+            },
+            {
+              "color": "green",
+              "value": 99
+            }
+          ]
+        }
+      },
+      "description": "Overall system health status based on service availability"
+    },
+    {
+      "title": "CPU Usage",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\",instance=~\"$node\"}[5m])) * 100)",
+          "legendFormat": "CPU Usage %"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 70
+            },
+            {
+              "color": "red",
+              "value": 85
+            }
+          ]
+        }
+      },
+      "description": "CPU utilization percentage across the system"
+    },
+    {
+      "title": "Memory Usage",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "100 * (1 - (node_memory_MemAvailable_bytes{instance=~\"$node\"} / node_memory_MemTotal_bytes{instance=~\"$node\"}))",
+          "legendFormat": "Memory Usage %"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 75
+            },
+            {
+              "color": "red",
+              "value": 90
+            }
+          ]
+        }
+      },
+      "description": "Memory utilization percentage across the system"
+    },
+    {
+      "title": "Disk Usage",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "100 - ((node_filesystem_avail_bytes{instance=~\"$node\",mountpoint=\"/\",fstype!=\"rootfs\"} * 100) / node_filesystem_size_bytes{instance=~\"$node\",mountpoint=\"/\",fstype!=\"rootfs\"})",
+          "legendFormat": "Disk Usage % - {{mountpoint}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 75
+            },
+            {
+              "color": "red",
+              "value": 90
+            }
+          ]
+        }
+      },
+      "description": "Disk utilization percentage for key mount points"
+    },
+    {
+      "title": "Network Traffic",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "irate(node_network_receive_bytes_total{instance=~\"$node\",device!=\"lo\"}[5m])",
+          "legendFormat": "{{device}} - Receive"
+        },
+        {
+          "expr": "irate(node_network_transmit_bytes_total{instance=~\"$node\",device!=\"lo\"}[5m])",
+          "legendFormat": "{{device}} - Transmit"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "unit": "Bps"
+      },
+      "description": "Network traffic throughput (receive and transmit) by interface"
+    },
+    {
+      "title": "System Load",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "node_load1{instance=~\"$node\"}",
+          "legendFormat": "Load 1m"
+        },
+        {
+          "expr": "node_load5{instance=~\"$node\"}",
+          "legendFormat": "Load 5m"
+        },
+        {
+          "expr": "node_load15{instance=~\"$node\"}",
+          "legendFormat": "Load 15m"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "System load averages for 1, 5, and 15 minute intervals"
+    },
+    {
+      "title": "Container Status",
+      "type": "table",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "up{job=~\"$job\"}",
+          "legendFormat": "{{job}}",
+          "instant": true
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Value",
+            "desc": false
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Value": "Status",
+              "job": "Service",
+              "instance": "Instance"
+            },
+            "indexByName": {
+              "Service": 0,
+              "Instance": 1,
+              "Status": 2
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": ["Service", "Instance", "Status"]
+            }
+          }
+        }
+      ],
+      "description": "Current status of all monitored services"
+    },
+    {
+      "title": "Container CPU",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum by (name) (rate(container_cpu_usage_seconds_total{name=~\".+\"}[5m]))",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "CPU usage by container"
+    },
+    {
+      "title": "Container Memory",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name=~\".+\"}",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "unit": "bytes"
+      },
+      "description": "Memory usage by container"
+    },
+    {
+      "title": "Container Restarts",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "changes(container_start_time_seconds{name=~\".+\"}[1h])",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Container restart count over time"
+    },
+    {
+      "title": "Database Health",
+      "type": "stat",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "pg_up",
+          "legendFormat": "PostgreSQL Status"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "red",
+              "value": null
+            },
+            {
+              "color": "green",
+              "value": 1
+            }
+          ]
+        }
+      },
+      "description": "PostgreSQL database availability status"
+    },
+    {
+      "title": "Database Connection Count",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "pg_stat_activity_count",
+          "legendFormat": "Active Connections"
+        },
+        {
+          "expr": "pg_settings_max_connections",
+          "legendFormat": "Max Connections"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "PostgreSQL database connection count vs. maximum connections"
+    },
+    {
+      "title": "Database Transaction Rate",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "rate(pg_stat_database_xact_commit{datname=\"molecular_platform\"}[5m])",
+          "legendFormat": "Commits"
+        },
+        {
+          "expr": "rate(pg_stat_database_xact_rollback{datname=\"molecular_platform\"}[5m])",
+          "legendFormat": "Rollbacks"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "PostgreSQL database transaction rate (commits and rollbacks)"
+    },
+    {
+      "title": "Redis Health",
+      "type": "stat",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "redis_up",
+          "legendFormat": "Redis Status"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "red",
+              "value": null
+            },
+            {
+              "color": "green",
+              "value": 1
+            }
+          ]
+        }
+      },
+      "description": "Redis cache and queue availability status"
+    },
+    {
+      "title": "Redis Memory Usage",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "redis_memory_used_bytes",
+          "legendFormat": "Used Memory"
+        },
+        {
+          "expr": "redis_memory_max_bytes",
+          "legendFormat": "Max Memory"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "unit": "bytes"
+      },
+      "description": "Redis memory usage vs. maximum memory"
+    },
+    {
+      "title": "Queue Health",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "celery_tasks_active",
+          "legendFormat": "Active Tasks"
+        },
+        {
+          "expr": "celery_tasks_pending",
+          "legendFormat": "Pending Tasks"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "Celery task queue health (active and pending tasks)"
+    },
+    {
+      "title": "Queue Processing Rate",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "rate(celery_tasks_completed_total[5m])",
+          "legendFormat": "Tasks Completed/s"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "Celery task completion rate per second"
+    },
+    {
+      "title": "File Storage Health",
+      "type": "stat",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "minio_up",
+          "legendFormat": "MinIO Status"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "red",
+              "value": null
+            },
+            {
+              "color": "green",
+              "value": 1
+            }
+          ]
+        }
+      },
+      "description": "MinIO object storage availability status"
+    },
+    {
+      "title": "File Storage Usage",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "minio_disk_storage_used_bytes",
+          "legendFormat": "Used Storage"
+        },
+        {
+          "expr": "minio_disk_storage_total_bytes",
+          "legendFormat": "Total Storage"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "unit": "bytes"
+      },
+      "description": "MinIO storage usage vs. total storage"
+    }
+  ],
+  "annotations": [
+    {
+      "name": "Deployments",
+      "datasource": "$datasource",
+      "expr": "changes(process_start_time_seconds{job=~\"backend|worker\"}[1m]) > 0",
+      "title": "Service Deployment",
+      "description": "Indicates when services were redeployed"
+    },
+    {
+      "name": "System Events",
+      "datasource": "$datasource",
+      "expr": "changes(node_boot_time_seconds{instance=~\"$node\"}[1m]) > 0",
+      "title": "System Restart",
+      "description": "Indicates when the system was restarted"
+    }
+  ],
+  "links": [
+    {
+      "title": "Application Dashboard",
+      "url": "/d/application-dashboard",
+      "description": "View application performance metrics"
+    },
+    {
+      "title": "Business Dashboard",
+      "url": "/d/business-dashboard",
+      "description": "View business metrics"
+    }
+  ]
+}
