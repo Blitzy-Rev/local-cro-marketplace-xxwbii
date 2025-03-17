@@ -1,0 +1,40 @@
+# Configuration file for Grafana data sources
+# This file defines the data sources used by Grafana dashboards for metrics and logging
+apiVersion: 1
+
+# List of data sources to be provisioned
+datasources:
+  # Prometheus data source for metrics collection
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 15s  # Matches scrape_interval in prometheus.yml
+      httpMethod: GET
+    version: 1
+
+  # Elasticsearch data source for log visualization
+  - name: Elasticsearch
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    database: molecular-platform-*
+    isDefault: false
+    editable: false
+    jsonData:
+      timeField: "@timestamp"
+      esVersion: 7
+      maxConcurrentShardRequests: 5
+      logMessageField: "message"
+      logLevelField: "level"
+    version: 1
+
+# Prevent deletion of provisioned data sources via the UI
+deleteDatasources:
+  - name: Prometheus
+    orgId: 1
+  - name: Elasticsearch
+    orgId: 1
