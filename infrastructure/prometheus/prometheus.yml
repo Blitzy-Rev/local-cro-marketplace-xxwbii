@@ -1,0 +1,80 @@
+# Global configuration
+global:
+  scrape_interval: 15s     # How frequently to scrape targets by default
+  evaluation_interval: 15s # How frequently to evaluate rules by default
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093  # Alertmanager service endpoint
+
+# Rule files to load
+rule_files:
+  - "rules/alert_rules.yml"     # Alert rules for monitoring
+  - "rules/recording_rules.yml" # Recording rules for performance metrics
+
+# Storage configuration
+storage:
+  tsdb:
+    path: "/prometheus"     # Where to store the metrics database
+    retention_time: "15d"   # How long to retain metrics (15 days)
+
+# Scrape configurations for all system components
+scrape_configs:
+  # Self-monitoring of Prometheus server
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Backend API service metrics
+  - job_name: 'backend'
+    metrics_path: '/metrics'
+    scrape_interval: 10s  # More frequent scraping for critical service
+    static_configs:
+      - targets: ['backend:8000']
+
+  # Celery worker metrics
+  - job_name: 'worker'
+    metrics_path: '/metrics'
+    scrape_interval: 10s  # More frequent scraping for critical service
+    static_configs:
+      - targets: ['worker:8000']
+
+  # System metrics from node_exporter
+  - job_name: 'node_exporter'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['node-exporter:9100']
+
+  # PostgreSQL database metrics
+  - job_name: 'postgres'
+    scrape_interval: 30s  # Less frequent scraping for database to reduce load
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+
+  # Redis cache and queue metrics
+  - job_name: 'redis'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['redis-exporter:9121']
+
+  # MinIO object storage metrics
+  - job_name: 'minio'
+    scrape_interval: 30s  # Less frequent scraping for storage service
+    metrics_path: '/minio/prometheus/metrics'  # Custom metrics path for MinIO
+    static_configs:
+      - targets: ['minio:9000']
+
+  # Nginx web server metrics
+  - job_name: 'nginx'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+
+  # Container metrics from cAdvisor
+  - job_name: 'cadvisor'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['cadvisor:8080']
