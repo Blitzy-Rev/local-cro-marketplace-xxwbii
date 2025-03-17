@@ -1,0 +1,54 @@
+# Kibana configuration for Molecular Data Management and CRO Integration Platform
+# Kibana version: 7.17.0
+
+# Server settings
+server.name: kibana
+server.host: "0.0.0.0"
+server.port: 5601
+server.basePath: ""
+server.maxPayloadBytes: 1048576
+
+# Elasticsearch connection settings
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+elasticsearch.requestTimeout: 30000
+elasticsearch.shardTimeout: 30000
+
+# Leave credentials empty for local deployment
+elasticsearch.username: ""
+elasticsearch.password: ""
+
+# Kibana index settings
+kibana.index: ".kibana"
+kibana.defaultAppId: "discover"
+
+# Logging settings
+logging.verbose: false
+logging.dest: stdout
+logging.json: true
+
+# Security and feature settings (X-Pack)
+xpack.security.enabled: false
+xpack.monitoring.enabled: true
+xpack.monitoring.ui.container.elasticsearch.enabled: true
+xpack.reporting.enabled: true
+xpack.graph.enabled: false
+xpack.ml.enabled: false
+
+# Disable telemetry for local deployment
+telemetry.enabled: false
+
+# Save configuration for index patterns
+# These will be automatically created during startup
+savedObjects.init.timeoutCount: 5000
+savedObjects.init.concurrency: 5
+
+# Default index pattern configuration
+# These settings help Kibana recognize the structure of the log data
+kibana.autocompleteTerminateAfter: 100000
+kibana.autocompleteTimeout: 1000
+
+# Additional settings for optimal performance in local environment
+optimize.bundleFilter: !excludeAll
+optimize.useBundleCache: true
+courier.batchSearches: true
+courier.ignoreFilterIfFieldNotInIndex: true
