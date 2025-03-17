@@ -1,0 +1,754 @@
+{
+  "id": null,
+  "uid": "application-dashboard",
+  "title": "Application Performance Dashboard",
+  "tags": [
+    "application",
+    "performance",
+    "monitoring"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "refresh": "10s",
+  "schemaVersion": 30,
+  "version": 1,
+  "description": "Comprehensive application performance monitoring dashboard for the Molecular Data Management and CRO Integration Platform",
+  "variables": [
+    {
+      "name": "datasource",
+      "type": "datasource",
+      "query": "prometheus",
+      "description": "Prometheus data source for metrics"
+    },
+    {
+      "name": "endpoint",
+      "type": "query",
+      "datasource": "$datasource",
+      "query": "label_values(http_request_duration_seconds_count, handler)",
+      "description": "API endpoint selection for filtering metrics"
+    },
+    {
+      "name": "status_code",
+      "type": "query",
+      "datasource": "$datasource",
+      "query": "label_values(http_request_duration_seconds_count, status_code)",
+      "description": "HTTP status code for filtering metrics"
+    },
+    {
+      "name": "interval",
+      "type": "interval",
+      "query": "1m,5m,10m,30m,1h,6h,12h,1d",
+      "description": "Time interval for rate calculations"
+    }
+  ],
+  "panels": [
+    {
+      "title": "API Performance Overview",
+      "type": "stat",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(rate(http_request_duration_seconds_count[$interval]))",
+          "legendFormat": "Requests/sec"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "mean"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "description": "Overall API request rate across all endpoints"
+    },
+    {
+      "title": "Request Rate",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(rate(http_request_duration_seconds_count[$interval])) by (handler)",
+          "legendFormat": "{{handler}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "API request rate by endpoint"
+    },
+    {
+      "title": "Response Time",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[$interval])) by (handler, le))",
+          "legendFormat": "{{handler}} (p95)"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[$interval])) by (handler, le))",
+          "legendFormat": "{{handler}} (p50)"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 0.3
+            },
+            {
+              "color": "red",
+              "value": 0.5
+            }
+          ]
+        }
+      },
+      "description": "API response time percentiles by endpoint"
+    },
+    {
+      "title": "Error Rate",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(rate(http_request_duration_seconds_count{status_code=~\"5..\"}[$interval])) by (handler) / sum(rate(http_request_duration_seconds_count[$interval])) by (handler)",
+          "legendFormat": "{{handler}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 0.01
+            },
+            {
+              "color": "red",
+              "value": 0.05
+            }
+          ]
+        }
+      },
+      "description": "API error rate by endpoint (5xx responses)"
+    },
+    {
+      "title": "Endpoint Performance",
+      "type": "table",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "topk(10, sum(rate(http_request_duration_seconds_sum[$interval])) by (handler) / sum(rate(http_request_duration_seconds_count[$interval])) by (handler))",
+          "legendFormat": "{{handler}}",
+          "instant": true
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Value",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Value": "Avg Response Time (s)",
+              "handler": "Endpoint"
+            },
+            "indexByName": {
+              "Endpoint": 0,
+              "Avg Response Time (s)": 1
+            }
+          }
+        }
+      ],
+      "description": "Top 10 slowest API endpoints by average response time"
+    },
+    {
+      "title": "Top 5 Most Used Endpoints",
+      "type": "bar",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "topk(5, sum(rate(http_request_duration_seconds_count[$interval])) by (handler))",
+          "legendFormat": "{{handler}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "desc"
+        }
+      },
+      "description": "Top 5 most frequently used API endpoints"
+    },
+    {
+      "title": "Top 5 Error Rate Endpoints",
+      "type": "bar",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "topk(5, sum(rate(http_request_duration_seconds_count{status_code=~\"[45]..\"}[$interval])) by (handler) / sum(rate(http_request_duration_seconds_count[$interval])) by (handler))",
+          "legendFormat": "{{handler}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "desc"
+        },
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 0.01
+            },
+            {
+              "color": "red",
+              "value": 0.05
+            }
+          ]
+        }
+      },
+      "description": "Top 5 API endpoints with highest error rates"
+    },
+    {
+      "title": "HTTP Status Codes",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(rate(http_request_duration_seconds_count[$interval])) by (status_code)",
+          "legendFormat": "{{status_code}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Distribution of HTTP status codes over time"
+    },
+    {
+      "title": "Page Load Time",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(frontend_page_load_time_seconds_bucket[$interval])) by (page, le))",
+          "legendFormat": "{{page}} (p95)"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(frontend_page_load_time_seconds_bucket[$interval])) by (page, le))",
+          "legendFormat": "{{page}} (p50)"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 1
+            },
+            {
+              "color": "red",
+              "value": 2
+            }
+          ]
+        }
+      },
+      "description": "Frontend page load time percentiles by page"
+    },
+    {
+      "title": "API Latency",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(frontend_api_request_duration_seconds_bucket[$interval])) by (endpoint, le))",
+          "legendFormat": "{{endpoint}} (p95)"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 0.3
+            },
+            {
+              "color": "red",
+              "value": 0.5
+            }
+          ]
+        }
+      },
+      "description": "Frontend API request latency percentiles by endpoint"
+    },
+    {
+      "title": "Resource Load Time",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(frontend_resource_load_time_seconds_bucket[$interval])) by (resource_type, le))",
+          "legendFormat": "{{resource_type}} (p95)"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Frontend resource load time percentiles by resource type"
+    },
+    {
+      "title": "Background Tasks Overview",
+      "type": "stat",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(celery_tasks_active)",
+          "legendFormat": "Active Tasks"
+        },
+        {
+          "expr": "sum(celery_tasks_pending)",
+          "legendFormat": "Pending Tasks"
+        },
+        {
+          "expr": "sum(rate(celery_tasks_completed_total[$interval]))",
+          "legendFormat": "Completed Tasks/s"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "description": "Overview of background task metrics"
+    },
+    {
+      "title": "Task Completion Time",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(celery_task_execution_time_seconds_bucket[$interval])) by (task_name, le))",
+          "legendFormat": "{{task_name}} (p95)"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(celery_task_execution_time_seconds_bucket[$interval])) by (task_name, le))",
+          "legendFormat": "{{task_name}} (p50)"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Background task execution time percentiles by task name"
+    },
+    {
+      "title": "Task Success Rate",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(rate(celery_tasks_completed_total[$interval])) by (task_name, status)",
+          "legendFormat": "{{task_name}} - {{status}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Background task completion rate by task name and status"
+    },
+    {
+      "title": "Task Throughput",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(rate(celery_tasks_completed_total[$interval])) by (task_name)",
+          "legendFormat": "{{task_name}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "Background task throughput by task name"
+    },
+    {
+      "title": "CSV Processing Time",
+      "type": "gauge",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "avg(rate(csv_processing_duration_seconds_sum[$interval]) / rate(csv_processing_duration_seconds_count[$interval]))",
+          "legendFormat": "Avg Processing Time"
+        }
+      ],
+      "options": {
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 20
+            },
+            {
+              "color": "red",
+              "value": 30
+            }
+          ]
+        }
+      },
+      "description": "Average CSV processing time in seconds (SLA: <30s for 10,000 molecules)"
+    },
+    {
+      "title": "CSV Processing Performance",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(csv_processing_duration_seconds_bucket[$interval])) by (le))",
+          "legendFormat": "p95"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(csv_processing_duration_seconds_bucket[$interval])) by (le))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "avg(rate(csv_processing_duration_seconds_sum[$interval]) / rate(csv_processing_duration_seconds_count[$interval]))",
+          "legendFormat": "avg"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        },
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 20
+            },
+            {
+              "color": "red",
+              "value": 30
+            }
+          ]
+        }
+      },
+      "description": "CSV processing time percentiles over time"
+    },
+    {
+      "title": "Database Query Performance",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(database_query_duration_seconds_bucket[$interval])) by (query_type, le))",
+          "legendFormat": "{{query_type}} (p95)"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 0.1
+            },
+            {
+              "color": "red",
+              "value": 0.3
+            }
+          ]
+        }
+      },
+      "description": "Database query performance by query type"
+    },
+    {
+      "title": "Memory Usage by Service",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(process_resident_memory_bytes{job=~\"backend|worker\"}) by (job)",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "unit": "bytes"
+      },
+      "description": "Memory usage by service over time"
+    },
+    {
+      "title": "CPU Usage by Service",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(rate(process_cpu_seconds_total{job=~\"backend|worker\"}[$interval])) by (job)",
+          "legendFormat": "{{job}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "CPU usage by service over time"
+    },
+    {
+      "title": "API SLA Compliance",
+      "type": "gauge",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(rate(http_request_duration_seconds_count{status_code=~\"2..\"}[$interval])) / sum(rate(http_request_duration_seconds_count[$interval])) * 100",
+          "legendFormat": "Success Rate"
+        }
+      ],
+      "options": {
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "red",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 95
+            },
+            {
+              "color": "green",
+              "value": 99
+            }
+          ]
+        }
+      },
+      "description": "API success rate (SLA: 99.9% of requests successful)"
+    },
+    {
+      "title": "Response Time SLA Compliance",
+      "type": "gauge",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(rate(http_request_duration_seconds_bucket{le=\"0.5\"}[$interval])) / sum(rate(http_request_duration_seconds_count[$interval])) * 100",
+          "legendFormat": "% Requests < 500ms"
+        }
+      ],
+      "options": {
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "red",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 95
+            },
+            {
+              "color": "green",
+              "value": 99
+            }
+          ]
+        }
+      },
+      "description": "Percentage of API requests completing in under 500ms (SLA: 99.9% of requests < 500ms)"
+    }
+  ],
+  "annotations": [
+    {
+      "name": "Deployments",
+      "datasource": "$datasource",
+      "expr": "changes(process_start_time_seconds{job=~\"backend|worker\"}[1m]) > 0",
+      "title": "Service Deployment",
+      "description": "Indicates when services were redeployed"
+    },
+    {
+      "name": "Error Spikes",
+      "datasource": "$datasource",
+      "expr": "sum(rate(http_request_duration_seconds_count{status_code=~\"5..\"}[1m])) > 5",
+      "title": "Error Spike",
+      "description": "Indicates when error rate exceeded threshold"
+    }
+  ],
+  "links": [
+    {
+      "title": "System Dashboard",
+      "url": "/d/system-dashboard",
+      "description": "View system health metrics"
+    },
+    {
+      "title": "Business Dashboard",
+      "url": "/d/business-dashboard",
+      "description": "View business metrics"
+    }
+  ]
+}
