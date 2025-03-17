@@ -1,0 +1,63 @@
+# Elasticsearch configuration for Molecular Data Management and CRO Integration Platform
+# Elasticsearch version: 7.17.0
+
+# Cluster Configuration
+cluster.name: molecular-platform
+
+# Node Configuration
+node.name: elasticsearch-node-1
+node.master: true
+node.data: true
+
+# Network Configuration
+network.host: 0.0.0.0
+http.port: 9200
+http.compression: true
+
+# Discovery Configuration
+# Using single-node discovery for local deployment without external dependencies
+discovery.type: single-node
+
+# Memory Settings
+bootstrap.memory_lock: true
+
+# Indices Settings
+indices.query.bool.max_clause_count: 1024
+indices.fielddata.cache.size: "20%"
+indices.memory.index_buffer_size: "10%"
+
+# Thread Pool Settings
+thread_pool.search.size: 5
+thread_pool.search.queue_size: 1000
+thread_pool.write.size: 4
+thread_pool.write.queue_size: 1000
+
+# Action Settings
+action.destructive_requires_name: true
+
+# X-Pack Settings
+# Security disabled for local deployment without external dependencies
+xpack.security.enabled: false
+xpack.monitoring.enabled: true
+
+# Path Settings
+path.data: /usr/share/elasticsearch/data
+path.logs: /usr/share/elasticsearch/logs
+
+# Index Templates for Log Storage
+# These templates will be automatically applied to indices matching the pattern
+action.auto_create_index: "molecular-platform-*"
+
+# Log Index Template Settings
+# Single shard with no replicas for local deployment
+index.number_of_shards: 1
+index.number_of_replicas: 0
+index.refresh_interval: "5s"
+
+# Index Lifecycle Management
+# Configure basic ILM policy for logs
+index.lifecycle.name: logs-policy
+index.lifecycle.rollover_alias: molecular-platform-logs
+
+# Compatibility Settings
+compatibility.override_main_response_version: true
