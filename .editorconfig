@@ -1,0 +1,38 @@
+# working on the same project across various editors and IDEs
+# https://editorconfig.org/
+
+# top-most EditorConfig file
+root = true
+
+# Default settings for all files
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Markdown files - preserve trailing whitespace for line breaks
+[*.md]
+trim_trailing_whitespace = false
+
+# YAML files - typically use 2 spaces for indentation
+[*.{yml,yaml}]
+indent_size = 2
+
+# JSON files - typically use 2 spaces for indentation
+[*.json]
+indent_size = 2
+
+# TypeScript files - match frontend code style
+[*.{ts,tsx}]
+indent_size = 2
+
+# Python files - follow PEP 8 guidelines
+[*.py]
+indent_size = 4
+
+# Shell scripts - ensure Unix line endings for proper execution
+[*.sh]
+end_of_line = lf
