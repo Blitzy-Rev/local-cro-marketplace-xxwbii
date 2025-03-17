@@ -1,0 +1,65 @@
+"compilerOptions": {
+    /* Basic Options */
+    "target": "ES2020",                          /* Specify ECMAScript target version */
+    "useDefineForClassFields": true,             /* Use 'define' property for class fields */
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],    /* Specify library files to be included in the compilation */
+    "module": "ESNext",                          /* Specify module code generation */
+    "skipLibCheck": true,                        /* Skip type checking of declaration files */
+
+    /* Module Resolution Options */
+    "moduleResolution": "bundler",               /* Specify module resolution strategy */
+    "allowImportingTsExtensions": true,          /* Allow imports to include .ts extensions */
+    "resolveJsonModule": true,                   /* Include modules imported with .json extension */
+    "isolatedModules": true,                     /* Transpile each file as a separate module */
+    "noEmit": true,                              /* Do not emit outputs */
+    "jsx": "react-jsx",                          /* Support JSX in .tsx files */
+    
+    /* Strict Type-Checking Options */
+    "strict": true,                              /* Enable all strict type-checking options */
+    "noUnusedLocals": true,                      /* Report errors on unused locals */
+    "noUnusedParameters": true,                  /* Report errors on unused parameters */
+    "noFallthroughCasesInSwitch": true,          /* Report errors for fallthrough cases in switch statement */
+    
+    /* Additional Options */
+    "allowSyntheticDefaultImports": true,        /* Allow default imports from modules with no default export */
+    "forceConsistentCasingInFileNames": true,    /* Ensure consistent casing in file names */
+    "esModuleInterop": true,                     /* Enable interoperability between CommonJS and ES Modules */
+    
+    /* Path Configurations */
+    "baseUrl": ".",                              /* Base directory to resolve non-relative module names */
+    "paths": {                                   /* Path mapping for module aliases */
+      "src/*": ["src/*"],
+      "components/*": ["src/components/*"],
+      "features/*": ["src/features/*"],
+      "hooks/*": ["src/hooks/*"],
+      "utils/*": ["src/utils/*"],
+      "api/*": ["src/api/*"],
+      "store/*": ["src/store/*"],
+      "types/*": ["src/types/*"],
+      "theme/*": ["src/theme/*"],
+      "layouts/*": ["src/layouts/*"],
+      "assets/*": ["src/assets/*"]
+    },
+    "typeRoots": [                               /* List of folders to include type definitions from */
+      "./node_modules/@types",
+      "./src/types"
+    ]
+  },
+  "include": [                                   /* Files to include in compilation */
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.d.ts"
+  ],
+  "exclude": [                                   /* Files to exclude from compilation */
+    "node_modules",
+    "dist",
+    "build",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.spec.tsx",
+    "**/*.test.tsx"
+  ],
+  "references": [                                /* Project references */
+    { "path": "./tsconfig.node.json" }
+  ]
+}
