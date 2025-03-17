@@ -1,0 +1,666 @@
+{
+  "id": null,
+  "uid": "business-dashboard",
+  "title": "Business Metrics Dashboard",
+  "tags": ["business", "metrics", "monitoring"],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "refresh": "10s",
+  "schemaVersion": 30,
+  "version": 1,
+  "description": "Comprehensive business metrics monitoring dashboard for the Molecular Data Management and CRO Integration Platform",
+  "annotations": {
+    "list": [
+      {
+        "name": "Deployments",
+        "datasource": "$datasource",
+        "expr": "changes(process_start_time_seconds{job=~\"backend|worker\"}[1m]) > 0",
+        "title": "Service Deployment",
+        "description": "Indicates when services were redeployed"
+      },
+      {
+        "name": "Feature Releases",
+        "datasource": "$datasource",
+        "expr": "version_info_change > 0",
+        "title": "Feature Release",
+        "description": "Indicates when new features were released"
+      }
+    ]
+  },
+  "variables": [
+    {
+      "name": "datasource",
+      "type": "datasource",
+      "query": "prometheus",
+      "description": "Prometheus data source for metrics"
+    },
+    {
+      "name": "role",
+      "type": "query",
+      "datasource": "$datasource",
+      "query": "label_values(active_users_total, role)",
+      "description": "User role for filtering metrics"
+    },
+    {
+      "name": "interval",
+      "type": "interval",
+      "query": "1d,7d,30d,90d",
+      "description": "Time interval for trend calculations"
+    }
+  ],
+  "panels": [
+    {
+      "title": "User Activity Overview",
+      "type": "stat",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(active_users_total)",
+          "legendFormat": "Active Users"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "description": "Total number of active users across all roles"
+    },
+    {
+      "title": "Active Users",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(active_users_total) by (role)",
+          "legendFormat": "{{role}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "Active users by role over time"
+    },
+    {
+      "title": "New Users",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(increase(new_users_total[$interval])) by (role)",
+          "legendFormat": "{{role}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "New user registrations by role over time"
+    },
+    {
+      "title": "Login Frequency",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(increase(user_login_total[$interval]))",
+          "legendFormat": "Logins"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "User login frequency over time"
+    },
+    {
+      "title": "Data Volume Overview",
+      "type": "stat",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "molecules_total",
+          "legendFormat": "Total Molecules"
+        },
+        {
+          "expr": "libraries_total",
+          "legendFormat": "Total Libraries"
+        },
+        {
+          "expr": "experiments_total",
+          "legendFormat": "Total Experiments"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "description": "Overview of data volumes in the platform"
+    },
+    {
+      "title": "Total Molecules",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "molecules_total",
+          "legendFormat": "Molecules"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "Total molecules in the system over time"
+    },
+    {
+      "title": "Molecules by User",
+      "type": "bar",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "topk(10, molecules_by_user_total)",
+          "legendFormat": "{{user}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "desc"
+        }
+      },
+      "description": "Top 10 users by molecule count"
+    },
+    {
+      "title": "Libraries Created",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "increase(libraries_created_total[$interval])",
+          "legendFormat": "Libraries"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "Library creation over time"
+    },
+    {
+      "title": "Workflow Metrics Overview",
+      "type": "stat",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(experiments_by_status_total{status=\"draft\"})",
+          "legendFormat": "Draft Experiments"
+        },
+        {
+          "expr": "sum(experiments_by_status_total{status=\"in_progress\"})",
+          "legendFormat": "In Progress Experiments"
+        },
+        {
+          "expr": "sum(experiments_by_status_total{status=\"completed\"})",
+          "legendFormat": "Completed Experiments"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "description": "Overview of experiment workflow status"
+    },
+    {
+      "title": "Experiments Created",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "increase(experiments_created_total[$interval])",
+          "legendFormat": "Experiments"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "Experiment creation over time"
+    },
+    {
+      "title": "Experiment Status Distribution",
+      "type": "pie",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(experiments_by_status_total) by (status)",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "Distribution of experiments by status"
+    },
+    {
+      "title": "CRO Submissions",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "increase(submissions_total[$interval])",
+          "legendFormat": "Submissions"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "CRO submission volume over time"
+    },
+    {
+      "title": "Results Received",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "increase(results_received_total[$interval])",
+          "legendFormat": "Results"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "Result volume over time"
+    },
+    {
+      "title": "SLA Compliance Overview",
+      "type": "stat",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "avg(csv_processing_duration_seconds_avg)",
+          "legendFormat": "CSV Processing Time"
+        },
+        {
+          "expr": "avg(cro_response_time_hours)",
+          "legendFormat": "CRO Response Time"
+        },
+        {
+          "expr": "avg(result_turnaround_hours)",
+          "legendFormat": "Result Turnaround"
+        }
+      ],
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "description": "Overview of key SLA metrics"
+    },
+    {
+      "title": "CSV Processing Time",
+      "type": "gauge",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "avg(csv_processing_duration_seconds_avg)",
+          "legendFormat": "Avg Processing Time"
+        }
+      ],
+      "options": {
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 20
+            },
+            {
+              "color": "red",
+              "value": 30
+            }
+          ]
+        }
+      },
+      "description": "Average CSV processing time in seconds (SLA: <30s for 10,000 molecules)"
+    },
+    {
+      "title": "CRO Response Time",
+      "type": "gauge",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "avg(cro_response_time_hours)",
+          "legendFormat": "Avg Response Time"
+        }
+      ],
+      "options": {
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 18
+            },
+            {
+              "color": "red",
+              "value": 24
+            }
+          ]
+        }
+      },
+      "description": "Average CRO response time in hours (SLA: <24h)"
+    },
+    {
+      "title": "Result Turnaround",
+      "type": "gauge",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "avg(result_turnaround_hours)",
+          "legendFormat": "Avg Turnaround Time"
+        }
+      ],
+      "options": {
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 4
+            },
+            {
+              "color": "red",
+              "value": 6
+            }
+          ]
+        }
+      },
+      "description": "Average result turnaround time in hours (SLA: <5 minutes)"
+    },
+    {
+      "title": "Most Active Experiment Types",
+      "type": "bar",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "topk(5, sum(experiments_by_type_total) by (type))",
+          "legendFormat": "{{type}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "desc"
+        }
+      },
+      "description": "Top 5 most frequently used experiment types"
+    },
+    {
+      "title": "User Engagement Trend",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(increase(user_actions_total[$interval])) by (action)",
+          "legendFormat": "{{action}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "description": "User action trend over time by action type"
+    },
+    {
+      "title": "Molecule Growth Rate",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "increase(molecules_total[$interval])",
+          "legendFormat": "New Molecules"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "Molecule growth rate over time"
+    },
+    {
+      "title": "Feature Usage Distribution",
+      "type": "pie",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(increase(feature_usage_total[$interval])) by (feature)",
+          "legendFormat": "{{feature}}"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "description": "Distribution of feature usage across the platform"
+    },
+    {
+      "title": "CSV Import Volume",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(increase(csv_import_total[$interval]))",
+          "legendFormat": "CSV Imports"
+        },
+        {
+          "expr": "sum(increase(csv_import_molecules_total[$interval]))",
+          "legendFormat": "Molecules Imported"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "CSV import volume over time"
+    },
+    {
+      "title": "CRO Submission Success Rate",
+      "type": "gauge",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "sum(submissions_by_status_total{status=\"completed\"}) / sum(submissions_total) * 100",
+          "legendFormat": "Success Rate"
+        }
+      ],
+      "options": {
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "red",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 80
+            },
+            {
+              "color": "green",
+              "value": 90
+            }
+          ]
+        }
+      },
+      "description": "Percentage of CRO submissions that completed successfully"
+    },
+    {
+      "title": "Monthly Active Users",
+      "type": "timeseries",
+      "datasource": "$datasource",
+      "targets": [
+        {
+          "expr": "monthly_active_users_total",
+          "legendFormat": "MAU"
+        }
+      ],
+      "options": {
+        "legend": {
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "description": "Monthly active users over time"
+    }
+  ],
+  "links": [
+    {
+      "title": "System Dashboard",
+      "url": "/d/system-dashboard",
+      "description": "View system health metrics"
+    },
+    {
+      "title": "Application Dashboard",
+      "url": "/d/application-dashboard",
+      "description": "View application performance metrics"
+    }
+  ]
+}
