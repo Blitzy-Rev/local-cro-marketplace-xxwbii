@@ -1,0 +1,4 @@
+Disallow: /
+
+# This is a private application containing sensitive pharmaceutical data.
+# No crawling or indexing of any content is permitted.
